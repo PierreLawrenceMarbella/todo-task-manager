@@ -24,6 +24,14 @@ This project was developed as part of the **Application Development and Emerging
   - 🗑️ Delete tasks
   - ✅ Mark tasks as complete/incomplete
 
+- **Search & Filters**
+
+  - 🔍 Real-time search by task title
+  - 📊 Filter tasks by priority (Low, Medium, High)
+  - 📋 Filter tasks by status (All, Active, Completed)
+  - 🔄 Clear all filters with one click
+  - 📈 Results counter showing filtered task count
+
 - **Priority Levels**
 
   - 🟢 Low Priority
