@@ -32,6 +32,12 @@ This project was developed as part of the **Application Development and Emerging
   - 🔄 Clear all filters with one click
   - 📈 Results counter showing filtered task count
 
+- **Display Options**
+
+  - 📋 List View - Traditional card-based task display
+  - 📊 Table View - Organized tabular display with sortable columns
+  - 💾 View preference saved to localStorage
+
 - **Priority Levels**
 
   - 🟢 Low Priority
