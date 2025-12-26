@@ -47,6 +47,26 @@
     .clear-filters { background: transparent; color: #667eea; border: none; padding: 8px 12px; font-size: 14px; cursor: pointer; }
     .clear-filters:hover { text-decoration: underline; }
     .results-info { font-size: 14px; color: #6c757d; margin-bottom: 10px; }
+    /* View Toggle Styles */
+    .view-toggle { display: flex; gap: 5px; margin-bottom: 15px; }
+    .view-btn { padding: 8px 16px; border: 2px solid #e0e0e0; background: white; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; display: flex; align-items: center; gap: 5px; }
+    .view-btn:hover { border-color: #667eea; }
+    .view-btn.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: transparent; }
+    /* Table View Styles */
+    .task-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .task-table th, .task-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+    .task-table th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; }
+    .task-table th:first-child { border-radius: 8px 0 0 0; }
+    .task-table th:last-child { border-radius: 0 8px 0 0; }
+    .task-table tr:hover { background: #f8f9fa; }
+    .task-table tr.completed { background: #f0f0f0; }
+    .task-table tr.completed td { color: #6c757d; }
+    .task-table tr.completed .task-title-cell { text-decoration: line-through; }
+    .task-table .checkbox-cell { width: 40px; text-align: center; }
+    .task-table .priority-cell { width: 100px; }
+    .task-table .actions-cell { width: 100px; text-align: center; }
+    .task-table .actions-cell button { padding: 6px 10px; margin: 0 2px; }
+    .table-container { overflow-x: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
   </style>
 </head>
 <body>
@@ -98,6 +118,16 @@
       <div class="card">
         <h2>📋 My Tasks</h2>
         
+        <!-- View Toggle -->
+        <div class="view-toggle">
+          <button class="view-btn active" data-view="list" onclick="setView('list')">
+            📋 List View
+          </button>
+          <button class="view-btn" data-view="table" onclick="setView('table')">
+            📊 Table View
+          </button>
+        </div>
+        
         <!-- Search and Filters -->
         <div class="search-filter-container">
           <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search tasks..." oninput="handleSearch()">
@@ -135,10 +165,29 @@
       priority: '',
       status: ''
     };
+    let currentView = localStorage.getItem('taskView') || 'list';
+
+    // Set view toggle function
+    function setView(view) {
+      currentView = view;
+      localStorage.setItem('taskView', view);
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === view);
+      });
+      loadTasks();
+    }
+
+    // Initialize view on load
+    function initializeView() {
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === currentView);
+      });
+    }
 
     // Check if already logged in
     if (token) {
       showTaskSection();
+      initializeView();
       loadTasks();
     }
 
@@ -305,6 +354,16 @@
         return;
       }
 
+      // Render based on current view
+      if (currentView === 'table') {
+        renderTableView(tasks);
+      } else {
+        renderListView(tasks);
+      }
+    }
+
+    function renderListView(tasks) {
+      const taskList = document.getElementById('taskList');
       taskList.innerHTML = tasks.map(task => `
         <div class="task-item ${task.completed ? 'completed' : ''}" id="task-${task._id}">
           <div style="display: flex; align-items: center; flex: 1;">
@@ -321,6 +380,42 @@
           </div>
         </div>
       `).join('');
+    }
+
+    function renderTableView(tasks) {
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = `
+        <div class="table-container">
+          <table class="task-table">
+            <thead>
+              <tr>
+                <th class="checkbox-cell">✓</th>
+                <th>Task</th>
+                <th class="priority-cell">Priority</th>
+                <th class="actions-cell">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tasks.map(task => `
+                <tr class="${task.completed ? 'completed' : ''}" id="task-${task._id}">
+                  <td class="checkbox-cell">
+                    <input type="checkbox" class="checkbox" ${task.completed ? 'checked' : ''} 
+                           onchange="toggleComplete('${task._id}', this.checked)">
+                  </td>
+                  <td class="task-title-cell">${escapeHtml(task.title)}</td>
+                  <td class="priority-cell">
+                    <span class="task-priority priority-${task.priority}">${task.priority}</span>
+                  </td>
+                  <td class="actions-cell">
+                    <button class="btn-warning" onclick="editTask('${task._id}', '${escapeHtml(task.title)}', '${task.priority}')">✏️</button>
+                    <button class="btn-danger" onclick="deleteTask('${task._id}')">🗑️</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
     }
 
     function escapeHtml(text) {
