@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>To-Do Task Manager</title>
+</head>
+<body>
+  <h2>Add Task</h2>
+  <input id="title" placeholder="Task title">
+  <select id="priority">
+    <option>Low</option>
+    <option>Medium</option>
+    <option>High</option>
+  </select>
+  <button onclick="addTask()">Add</button>
+
+  <script>
+    async function addTask() {
+      await fetch("http://localhost:5000/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer YOUR_TOKEN"
+        },
+        body: JSON.stringify({
+          title: document.getElementById("title").value,
+          priority: document.getElementById("priority").value
+        })
+      });
+      alert("Task Added");
+    }
+  </script>
+</body>
+</html>
