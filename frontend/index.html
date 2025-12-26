@@ -37,6 +37,16 @@
     .empty-state { text-align: center; color: #6c757d; padding: 40px; }
     .checkbox { width: auto; margin-right: 10px; cursor: pointer; }
     .completed .task-title { text-decoration: line-through; color: #6c757d; }
+    .search-filter-container { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+    .search-input { flex: 2; min-width: 200px; margin-bottom: 0; }
+    .filter-select { flex: 1; min-width: 120px; margin-bottom: 0; }
+    .filter-tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+    .filter-tab { padding: 8px 16px; border: 2px solid #e0e0e0; background: white; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+    .filter-tab:hover { border-color: #667eea; }
+    .filter-tab.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: transparent; }
+    .clear-filters { background: transparent; color: #667eea; border: none; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+    .clear-filters:hover { text-decoration: underline; }
+    .results-info { font-size: 14px; color: #6c757d; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -87,6 +97,27 @@
       <!-- Task List -->
       <div class="card">
         <h2>📋 My Tasks</h2>
+        
+        <!-- Search and Filters -->
+        <div class="search-filter-container">
+          <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search tasks..." oninput="handleSearch()">
+          <select id="priorityFilter" class="filter-select" onchange="handleFilter()">
+            <option value="">All Priorities</option>
+            <option value="Low">🟢 Low</option>
+            <option value="Medium">🟡 Medium</option>
+            <option value="High">🔴 High</option>
+          </select>
+        </div>
+        
+        <!-- Status Filter Tabs -->
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-status="" onclick="filterByStatus('')">All</button>
+          <button class="filter-tab" data-status="active" onclick="filterByStatus('active')">Active</button>
+          <button class="filter-tab" data-status="completed" onclick="filterByStatus('completed')">Completed</button>
+          <button class="clear-filters" onclick="clearFilters()">Clear filters</button>
+        </div>
+        
+        <div id="resultsInfo" class="results-info hidden"></div>
         <div id="taskList">
           <div class="empty-state">No tasks yet. Add one above!</div>
         </div>
@@ -98,10 +129,51 @@
     const API_URL = 'http://localhost:5000/api';
     let token = localStorage.getItem('token');
     let editingTaskId = null;
+    let searchTimeout = null;
+    let currentFilters = {
+      search: '',
+      priority: '',
+      status: ''
+    };
 
     // Check if already logged in
     if (token) {
       showTaskSection();
+      loadTasks();
+    }
+
+    // Search with debounce
+    function handleSearch() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        currentFilters.search = document.getElementById('searchInput').value;
+        loadTasks();
+      }, 300);
+    }
+
+    // Handle priority filter change
+    function handleFilter() {
+      currentFilters.priority = document.getElementById('priorityFilter').value;
+      loadTasks();
+    }
+
+    // Handle status filter tabs
+    function filterByStatus(status) {
+      currentFilters.status = status;
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.status === status);
+      });
+      loadTasks();
+    }
+
+    // Clear all filters
+    function clearFilters() {
+      currentFilters = { search: '', priority: '', status: '' };
+      document.getElementById('searchInput').value = '';
+      document.getElementById('priorityFilter').value = '';
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.status === '');
+      });
       loadTasks();
     }
 
@@ -186,7 +258,16 @@
 
     async function loadTasks() {
       try {
-        const res = await fetch(`${API_URL}/tasks`, {
+        // Build query string with filters
+        const params = new URLSearchParams();
+        if (currentFilters.search) params.append('search', currentFilters.search);
+        if (currentFilters.priority) params.append('priority', currentFilters.priority);
+        if (currentFilters.status) params.append('status', currentFilters.status);
+        
+        const queryString = params.toString();
+        const url = `${API_URL}/tasks${queryString ? '?' + queryString : ''}`;
+        
+        const res = await fetch(url, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -205,9 +286,22 @@
 
     function renderTasks(tasks) {
       const taskList = document.getElementById('taskList');
+      const resultsInfo = document.getElementById('resultsInfo');
+      const hasFilters = currentFilters.search || currentFilters.priority || currentFilters.status;
+      
+      // Show results info when filters are active
+      if (hasFilters) {
+        resultsInfo.classList.remove('hidden');
+        resultsInfo.textContent = `Showing ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`;
+      } else {
+        resultsInfo.classList.add('hidden');
+      }
       
       if (tasks.length === 0) {
-        taskList.innerHTML = '<div class="empty-state">No tasks yet. Add one above!</div>';
+        const emptyMessage = hasFilters 
+          ? 'No tasks match your filters. Try adjusting your search or filters.'
+          : 'No tasks yet. Add one above!';
+        taskList.innerHTML = `<div class="empty-state">${emptyMessage}</div>`;
         return;
       }
 

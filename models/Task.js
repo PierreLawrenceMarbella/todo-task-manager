@@ -11,6 +11,10 @@ const TaskSchema = new mongoose.Schema({
     enum: ["Low", "Medium", "High"],
     default: "Low",
   },
+  completed: {
+    type: Boolean,
+    default: false,
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
